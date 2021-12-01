@@ -1,0 +1,23 @@
+---
+title: "Exploratory Analysis"
+output: html_notebook
+---
+
+```{r}
+library(astsa)
+
+```
+
+```{r}
+setwd('~/Documents/projects/MATH598_Final')
+```
+```{r}
+userData = read.csv('../data/steamUsers.csv')
+
+```
+
+Data Cleaning
+```{r}
+
+
+```
