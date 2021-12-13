@@ -1,0 +1,136 @@
+---
+title: "Math598FinalProject"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data = read.csv('/Users/dr.z/Desktop/Math 598 Final Project/chart.csv')
+#View(data)
+```
+
+```{r}
+data$DateTime = as.POSIXct(data$DateTime)
+plot(data$DateTime, data$Users, type='l', col='blue')
+```
+
+Work with data from 2015 to 2020 so we can make a more accurate model (omitting the many gaps in the early data and the erratic spikes after COVID).
+
+```{r}
+data2 = data[data$DateTime >= "2015-01-01" & data$DateTime < "2020-03-10",]
+plot(data2$DateTime, data2$Users, type='l', col='blue')
+```
+
+Linear trend in the data, so we will take a log transformation.
+
+```{r}
+logUsers2 = log(data2$Users)
+plot(data2$DateTime, logUsers2, type='l', col='blue')
+```
+
+Plot ACF and PACF of log transformed data.
+
+```{r}
+acf(logUsers2, na.action = na.pass)
+pacf(logUsers2, na.action = na.pass)
+```
+
+The ACF decays slowly, so we will take the first difference.
+
+```{r}
+diff_Users2 = diff(logUsers2)
+acf(diff_Users2, na.action = na.pass)
+pacf(diff_Users2, na.action = na.pass)
+```
+
+After taking the first difference, we can see that there is non stationarity in the seasonal component. We will take a seasonal difference to account for this with s = 7.
+
+```{r}
+diff2_Users2 = diff(diff_Users2, 7)
+acf(diff2_Users2, na.action = na.pass)
+pacf(diff2_Users2, na.action = na.pass)
+```
+
+From the ACF and PACF, we will first determine the seasonal component of the SARIMA model. The ACF cuts off after lag P = 1 and the PACF tails off, which suggests that the seasonal component is AR(P) with P = 1. Hence, the purely seasonal model is SARIMA(1,1,0)$_{7}$.
+
+We will now determine the non seasonal component of the model. Similarly to the seasonal component, we see that the ACF cuts off after lag p = 1 and the PACF tails off, which suggests that the non seasonal component is AR(p) with p = 1. Hence, the no seasonal model is SARIMA(1,1,0)$_{7}$.
+
+We combine both components to obtain the multiplicative model SARIMA(1,1,0)x(1,1,0)$_{7}$. The diagnostics of the model are included below.
+
+```{r}
+library(astsa)
+library(zoo)
+as.ts(logUsers2)
+logUsers_no_na = na.omit(logUsers2)
+sarima(logUsers_no_na, 1, 1, 0, P = 1, D = 1, Q = 0, S = 7)
+```
+
+Forecasting ahead for five days (data is zoomed in). This is projected Steam users if COVID didn't occur.
+
+```{r}
+sarima.for(logUsers_no_na, 5, 1,1,0, 1,1,0,7)
+```
+
+```{r}
+library(astsa)
+library(zoo)
+as.ts(data2$Users)
+data2_no_na = na.omit(data2$Users)
+sarima(data2_no_na, 1, 1, 0, P = 1, D = 1, Q = 0, S = 7)
+```
+
+```{r}
+sarima.for(data2_no_na, 5, 1,1,0, 1,1,0,7)
+```
+
+\newpage
+
+Building a model with the COVID data.
+
+```{r}
+data3 = data[data$DateTime >= "2015-01-01" & data$DateTime <= "2021-12-02",]
+plot(data3$DateTime, data3$Users, type='l', col='blue')
+```
+
+```{r}
+logUsers3 = log(data3$Users)
+plot(data3$DateTime, logUsers3, type='l', col='blue')
+```
+
+```{r}
+acf(logUsers3, na.action = na.pass)
+pacf(logUsers3, na.action = na.pass)
+```
+
+```{r}
+diff_Users3 = diff(logUsers3)
+acf(diff_Users3, na.action = na.pass)
+pacf(diff_Users3, na.action = na.pass)
+```
+
+```{r}
+diff2_Users3 = diff(diff_Users3, 7)
+acf(diff2_Users3, na.action = na.pass)
+pacf(diff2_Users3, na.action = na.pass)
+```
+
+```{r}
+library(astsa)
+library(zoo)
+as.ts(data3$Users)
+Users3_no_na = na.omit(data3$Users)
+sarima(Users3_no_na, 1, 1, 0, P = 1, D = 1, Q = 0, S = 7)
+```
+
+```{r}
+sarima.for(Users3_no_na, 5, 1,1,0, 1,1,0,7)
+```
+
+```{r}
+plot(Users3_no_na, type='l'); spectrum(Users3_no_na, log='no')
+```
+
+
